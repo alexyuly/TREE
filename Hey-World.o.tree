@@ -1,0 +1,10 @@
+==component
+. link
+  . node value-producer
+    . out 'Hey World!'
+  .*link
+    , Sink
+. sink Sink
+
+Sink = sink
+. node render

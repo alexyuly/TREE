@@ -1,0 +1,3 @@
+==type (In Out)
+. link (In any any)
+. sink (any Out)

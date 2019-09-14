@@ -1,0 +1,3 @@
+TYPE (State)
+..condition (ANY)
+. state = State

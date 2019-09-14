@@ -1,3 +1,0 @@
-TYPE (In Out)
-. link (In ANY ANY)
-. sink (ANY Out)

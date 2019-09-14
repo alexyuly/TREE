@@ -1,10 +1,7 @@
-component
-. link
-  . node value-producer
+link
+.*node
+  , value-producer
     . out 'Hey World!'
-  .*sink
-    , Sink
-. sink Sink
-
-Sink = sink
-. node render
+.*sink
+  , sink
+    . node render

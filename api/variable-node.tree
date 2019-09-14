@@ -1,0 +1,3 @@
+TYPE (State In Out)
+..node (In Out)
+. state = State

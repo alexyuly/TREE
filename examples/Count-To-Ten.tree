@@ -1,0 +1,7 @@
+MAKE
+< 1
+< < [count]
+  | under 10
+  ? | add 1
+> [count]
+> render

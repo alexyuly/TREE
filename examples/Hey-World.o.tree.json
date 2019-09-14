@@ -3,33 +3,27 @@
     "type": "component",
     "props": {
       "link": {
-        "node": {
-          "type": "value-producer",
-          "props": {
-            "out": {
-              "type": "STRING",
-              "value": "Hey World!"
+        "node": [
+          {
+            "type": "value-producer",
+            "props": {
+              "out": {
+                "type": "STRING",
+                "value": "Hey World!"
+              }
             }
           }
-        },
+        ],
         "sink": [
           {
-            "name": "Sink"
+            "type": "sink",
+            "props": {
+              "node": {
+                "type": "render"
+              }
+            }
           }
         ]
-      },
-      "sink": {
-        "name": "Sink"
-      }
-    }
-  },
-  "private": {
-    "Sink": {
-      "type": "sink",
-      "props": {
-        "node": {
-          "type": "render"
-        }
       }
     }
   }

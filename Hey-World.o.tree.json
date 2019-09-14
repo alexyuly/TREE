@@ -1,0 +1,35 @@
+[
+  {
+    "type": "component",
+    "props": {
+      "link": {
+        "node": {
+          "type": "value-producer",
+          "props": {
+            "out": {
+              "type": "string",
+              "value": "Hey World!"
+            }
+          }
+        },
+        "sink": [
+          {
+            "name": "Sink"
+          }
+        ]
+      },
+      "sink": {
+        "name": "Sink"
+      }
+    }
+  },
+  {
+    "name": "Sink",
+    "type": "sink",
+    "props": {
+      "node": {
+        "type": "render"
+      }
+    }
+  }
+]

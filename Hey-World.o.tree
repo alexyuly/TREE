@@ -2,7 +2,7 @@ component
 . link
   . node value-producer
     . out 'Hey World!'
-  .*link
+  .*sink
     , Sink
 . sink Sink
 

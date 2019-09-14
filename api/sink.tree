@@ -1,2 +1,2 @@
-type (In Out)
+TYPE (In Out)
 . node (In Out)

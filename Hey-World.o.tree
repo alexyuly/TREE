@@ -1,4 +1,4 @@
-==component
+component
 . link
   . node value-producer
     . out 'Hey World!'

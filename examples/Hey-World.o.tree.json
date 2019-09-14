@@ -1,5 +1,5 @@
-[
-  {
+{
+  "public": {
     "type": "component",
     "props": {
       "link": {
@@ -7,7 +7,7 @@
           "type": "value-producer",
           "props": {
             "out": {
-              "type": "string",
+              "type": "STRING",
               "value": "Hey World!"
             }
           }
@@ -23,13 +23,14 @@
       }
     }
   },
-  {
-    "name": "Sink",
-    "type": "sink",
-    "props": {
-      "node": {
-        "type": "render"
+  "private": {
+    "Sink": {
+      "type": "sink",
+      "props": {
+        "node": {
+          "type": "render"
+        }
       }
     }
   }
-]
+}

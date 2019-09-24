@@ -1,0 +1,3 @@
+type (In Join Out)
+* producer = this (In Unknown Join)
+* consumer = this (Join Unknown Out)

@@ -1,3 +1,0 @@
-TYPE (In Out Next)
-..sink (In Out)
-.*sink (Out Next)

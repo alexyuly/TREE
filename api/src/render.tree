@@ -1,2 +1,2 @@
-TYPE (In)
-..consumer (In)
+type (Value)
+~ component (Value Void Void)

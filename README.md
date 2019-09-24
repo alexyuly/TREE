@@ -9,6 +9,7 @@
 A component is an executable unit, represented in memory as an object with two properties, `producer` and `consumer`, each of which is a collection of components. Each component encapsulates and joins together other components.
 
 Here is the source of the `component` type:
+
 ```
 component = type (In Join Out)
 * producer = this (In Unknown Join)
@@ -30,6 +31,7 @@ A stream is the prototype for one or more components. The producers and consumer
 - `|` is the **pipe** operator. It denotes a component that is both a consumer and a producer. The compiler "expands" each pipe into a new consumer stream that encapsulates the original component as its producer.
 
 Here is the source of a stream that constructs a component to render the text `Hello World!` after a delay of 1000 milliseconds:
+
 ```
 stream
 < 'Hello World!'
@@ -38,6 +40,7 @@ stream
 ```
 
 And here is its compiler-expanded version:
+
 ```
 stream
 < 'Hello World!'
@@ -46,7 +49,8 @@ stream
   > render
 ```
 
-Finally, the compiler constructs a new component object. Each stream maps to a new component, each push operator maps to a  new producer, and each pull operator maps to a new consumer:
+Finally, the compiler constructs a new component object. Each stream maps to a new component, each push operator maps to a new producer, and each pull operator maps to a new consumer:
+
 ```
 component
 * producer =
@@ -61,4 +65,3 @@ component
     * consumer =
       - render
 ```
-

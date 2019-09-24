@@ -1,2 +1,3 @@
-TYPE (Out)
-..producer (Out)
+type (Value)
+~ component (Void Void Value)
+. value = Value

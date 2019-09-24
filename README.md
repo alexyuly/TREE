@@ -4,65 +4,35 @@
 
 ## Specification
 
-### Streams
+### Components
 
-Streams are prototypes for components.
+A component is an executable unit, represented in memory as a component object, which has two properties, `producer` and `consumer`, each of which is a collection of components. A component encapsulates and joins together other components.
 
-A component is an executable unit, represented in memory as a component object. This object has two properties: producers and consumers, each of which is itself a collection of components. The component type has three variables:
+Here is the source of the `component` type:
+```
+component = type (In Join Out)
+* producer = this (In Unknown Join)
+* consumer = this (Join Unknown Out)
+```
+
+The `component` type has three variables:
+
 - `In` is the type of the component's input and its producers' inputs.
-- `Thru` is the type of the component's producers' outputs and its consumer's inputs.
+- `Join` is the type of the component's producers' outputs and its consumer's inputs.
 - `Out` is the type of the component's output and its consumers' outputs.
 
-#### Example: working backwards from source code
+### Streams
 
+A stream is the prototype for one or more components. The producers and consumers of these components are defined by three operators:
+
+- `<` is the **push** operator. It denotes a producer.
+- `|` is the **pipe** operator. It denotes a component which is a producer and a consumer.
+- `>` is the **pull** operator. It denotes a consumer.
+
+Here is the source of a stream which constructs a component that renders the text `Hello World!` after a delay of 1000 milliseconds:
 ```
-# Original source code
-
 stream
-< 'Hello, World!'
+< 'Hello World!'
 | delay 1000
 > render
-
-
-# Expanded source code
-
-stream
-< 'Hello, World!'
-> < delay 1000
-  > render
-
-
-# Component object
-
-component
-* producer =
-  - value-producer
-    . value = 'Hello World!'
-* consumer =
-  - component
-    * producer =
-      - delay
-        . state = value-producer
-          . value = 1000
-    * consumer =
-      - render
-
-
-# Types
-
-component = type (In Thru Out)
-* producer = this (In Unknown Thru)
-* consumer = this (Thru Unknown Out)
-
-value-producer = type (Value)
-~ component (Void Void Value)
-. value = Value
-
-delay = type (Value)
-~ component (Value Void Value)
-. state = component (Unknown Unknown number)
-
-render = type (Value)
-~ component (Value Void Void)
-
 ```

@@ -86,10 +86,10 @@ class DelegateProcess<O, I, S> extends Process<O, I> {
     if (spec.props.state) {
       Process.create(spec.props.state, [new StateListener(this)]);
     }
+    this.init();
   }
 
-  // protected init() {}
-  protected run() {}
+  protected init() {}
 
   get state() {
     return this._state;

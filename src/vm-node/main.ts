@@ -109,13 +109,9 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
 
   constructor(spec: DelegateProcessSpec<O, I, S>, listeners?: Listener<O>[]) {
     super(listeners);
-    const {
-      default: Runner
-    }: {
-      default: typeof DelegateProcessRunner;
-    } = require(`./api/${spec.type}.tree`);
+    const Runner: typeof DelegateProcessRunner = require(`./api/${spec.type}.tree`)
+      .default;
     this._runner = new Runner(this, spec);
-    this._runner.init();
     if (spec.props.state) {
       Process.create(spec.props.state, [new StateListener(this)]);
     }
@@ -144,9 +140,10 @@ export class DelegateProcessRunner<O, I, S> {
   ) {
     this.process = process;
     this.spec = spec;
+    this.init();
   }
 
-  init() {}
+  protected init() {}
   step() {}
 }
 

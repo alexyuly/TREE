@@ -12,7 +12,7 @@ export default class Delay<T> extends DelegateProcessRunner<T, T, number> {
     this._process.output = this._process.input;
   };
 
-  step() {
+  run() {
     setTimeout(this._callback, this._process.state);
   }
 }

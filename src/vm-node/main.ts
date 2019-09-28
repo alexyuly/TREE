@@ -118,7 +118,7 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
   }
 
   _run() {
-    this._runner.step();
+    this._runner.run();
   }
 
   get state() {
@@ -131,7 +131,7 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
 }
 
 export abstract class DelegateProcessRunner<O, I, S> {
-  step() {}
+  run() {}
 }
 
 class ComponentProcess<O, I, J> extends Process<O, I> {

@@ -8,7 +8,7 @@ export default class Render<T> extends DelegateProcessRunner<void, T, void> {
     this._process = process;
   }
 
-  step() {
+  run() {
     console.log(this._process.input);
   }
 }

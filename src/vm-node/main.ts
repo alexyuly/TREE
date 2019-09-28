@@ -78,7 +78,7 @@ abstract class Process<O, I> {
     this._listeners = listeners;
   }
 
-  protected abstract _run(): void;
+  protected abstract run(): void;
 
   get input() {
     return this._input;
@@ -86,7 +86,7 @@ abstract class Process<O, I> {
 
   set input(value) {
     this._input = value;
-    this._run();
+    this.run();
   }
 
   set output(value: O) {
@@ -109,16 +109,21 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
 
   constructor(spec: DelegateProcessSpec<O, I, S>, listeners?: Listener<O>[]) {
     super(listeners);
-    const { default: Runner } = require(`./api/${spec.type}.tree`);
+    const {
+      default: Runner
+    }: {
+      default: typeof DelegateProcessRunner;
+    } = require(`./api/${spec.type}.tree`);
     this._runner = new Runner(this, spec);
+    this._runner.init();
     if (spec.props.state) {
       Process.create(spec.props.state, [new StateListener(this)]);
       // TODO The state process should listen through its input.
     }
   }
 
-  _run() {
-    this._runner.run();
+  run() {
+    this._runner.step();
   }
 
   get state() {
@@ -130,8 +135,20 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
   }
 }
 
-export abstract class DelegateProcessRunner<O, I, S> {
-  run() {}
+export class DelegateProcessRunner<O, I, S> {
+  protected process: DelegateProcess<O, I, S>;
+  protected spec: DelegateProcessSpec<O, I, S>;
+
+  constructor(
+    process: DelegateProcess<O, I, S>,
+    spec: DelegateProcessSpec<O, I, S>
+  ) {
+    this.process = process;
+    this.spec = spec;
+  }
+
+  init() {}
+  step() {}
 }
 
 class ComponentProcess<O, I, J> extends Process<O, I> {
@@ -147,7 +164,7 @@ class ComponentProcess<O, I, J> extends Process<O, I> {
     );
   }
 
-  _run() {
+  run() {
     for (const producerListener of this._producerListeners) {
       producerListener.send(this.input);
     }

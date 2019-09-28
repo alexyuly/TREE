@@ -54,7 +54,7 @@ interface ComponentProcessSpec<O, I, J> extends ProcessSpec<O, I> {
   };
 }
 
-function isComponentSpec<O, I>(
+function isComponentProcessSpec<O, I>(
   spec: ProcessSpec<O, I>
 ): spec is ComponentProcessSpec<O, I, unknown> {
   return spec.type === "component";
@@ -65,7 +65,7 @@ abstract class Process<O, I> {
     spec: ProcessSpec<OUT, IN>,
     listeners: Listener<OUT>[]
   ) {
-    if (isComponentSpec(spec)) {
+    if (isComponentProcessSpec(spec)) {
       return new ComponentProcess(spec, listeners);
     }
     return new DelegateProcess(spec, listeners);
@@ -96,19 +96,10 @@ abstract class Process<O, I> {
   }
 }
 
-interface DelegateProcessSpec<O, I, S> extends ProcessSpec<O, I> {
+export interface DelegateProcessSpec<O, I, S> extends ProcessSpec<O, I> {
   type: string;
   props: {
     state?: ProcessSpec<S, unknown>;
-  };
-}
-
-export interface ValueProducerProcessSpec<S>
-  extends DelegateProcessSpec<S, void, S> {
-  type: "value-producer";
-  props: {
-    state?: null;
-    value: S;
   };
 }
 
@@ -140,15 +131,6 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
 }
 
 export abstract class DelegateProcessRunner<O, I, S> {
-  protected process: DelegateProcess<O, I, S>;
-
-  constructor(
-    process: DelegateProcess<O, I, S>,
-    spec: DelegateProcessSpec<O, I, S>
-  ) {
-    this.process = process;
-  }
-
   step() {}
 }
 

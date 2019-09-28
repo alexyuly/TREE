@@ -1,8 +1,17 @@
 import {
   DelegateProcess,
   DelegateProcessRunner,
-  ValueProducerProcessSpec
+  DelegateProcessSpec
 } from "../main";
+
+interface ValueProducerDelegateProcessSpec<S>
+  extends DelegateProcessSpec<S, void, S> {
+  type: "value-producer";
+  props: {
+    state?: null;
+    value: S;
+  };
+}
 
 export default class ValueProducer<T> extends DelegateProcessRunner<
   T,
@@ -11,10 +20,10 @@ export default class ValueProducer<T> extends DelegateProcessRunner<
 > {
   constructor(
     process: DelegateProcess<T, void, T>,
-    spec: ValueProducerProcessSpec<T>
+    spec: ValueProducerDelegateProcessSpec<T>
   ) {
-    super(process, spec);
-    this.process.state = spec.props.value;
-    this.process.output = this.process.state;
+    super();
+    process.state = spec.props.value;
+    process.output = process.state;
   }
 }

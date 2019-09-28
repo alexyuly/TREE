@@ -1,3 +1,0 @@
-type (Value)
-~ component (Value Void Value)
-. state = component (Unknown Unknown number)

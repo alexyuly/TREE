@@ -1,11 +1,11 @@
-import { DelegateProcessRunner } from "../main";
+import { DelegateProcess } from "../main";
 
-class Delay<T> extends DelegateProcessRunner<T, T, number> {
-  step() {
-    const input = this.process.input;
+class Delay<T> extends DelegateProcess<T, T, number> {
+  run() {
+    const input = this.input;
     setTimeout(() => {
-      this.process.output = input;
-    }, this.process.state);
+      this.output = input;
+    }, this.state);
   }
 }
 

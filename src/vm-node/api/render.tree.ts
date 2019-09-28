@@ -1,8 +1,8 @@
-import { DelegateProcessRunner } from "../main";
+import { DelegateProcess } from "../main";
 
-class Render<T> extends DelegateProcessRunner<void, T, void> {
-  step() {
-    console.log(this.process.input);
+class Render<T> extends DelegateProcess<void, T, void> {
+  run() {
+    console.log(this.input);
   }
 }
 

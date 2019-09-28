@@ -48,7 +48,9 @@ abstract class Process<O, I> {
     if (isValueProcessSpec(spec)) {
       return new ValueProcess(spec, listeners);
     }
-    return new DelegateProcess(spec, listeners);
+    const DerivedDelegateProcess: typeof DelegateProcess = require(`./api/${spec.type}.tree`)
+      .default;
+    return new DerivedDelegateProcess(spec, listeners);
   }
 
   private _input: I;
@@ -77,22 +79,17 @@ abstract class Process<O, I> {
 }
 
 class DelegateProcess<O, I, S> extends Process<O, I> {
-  private _runner: DelegateProcessRunner<O, I, S>;
   private _state: S;
 
   constructor(spec: DelegateProcessSpec<O, I, S>, listeners?: Listener<O>[]) {
     super(listeners);
-    const Runner: typeof DelegateProcessRunner = require(`./api/${spec.type}.tree`)
-      .default;
-    this._runner = new Runner(this, spec);
     if (spec.props.state) {
       Process.create(spec.props.state, [new StateListener(this)]);
     }
   }
 
-  run() {
-    this._runner.step();
-  }
+  // protected init() {}
+  protected run() {}
 
   get state() {
     return this._state;
@@ -101,23 +98,6 @@ class DelegateProcess<O, I, S> extends Process<O, I> {
   set state(value) {
     this._state = value;
   }
-}
-
-class DelegateProcessRunner<O, I, S> {
-  protected process: DelegateProcess<O, I, S>;
-  protected spec: DelegateProcessSpec<O, I, S>;
-
-  constructor(
-    process: DelegateProcess<O, I, S>,
-    spec: DelegateProcessSpec<O, I, S>
-  ) {
-    this.process = process;
-    this.spec = spec;
-    this.init();
-  }
-
-  protected init() {}
-  step() {}
 }
 
 class ValueProcess<T> extends Process<T, void> {
@@ -191,7 +171,7 @@ class StateListener<T> extends Listener<T> {
   }
 }
 
-export { DelegateProcessRunner };
+export { DelegateProcess };
 
 export default function main<O, I, J>(spec: ComponentProcessSpec<O, I, J>) {
   new ComponentProcess(spec);

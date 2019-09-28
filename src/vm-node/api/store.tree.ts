@@ -1,10 +1,10 @@
-import { DelegateProcessRunner } from "../main";
+import { DelegateProcess } from "../main";
 
-class Store<T> extends DelegateProcessRunner<T, T, T> {
-  step() {
-    const state = (this.process.state = this.process.input);
+class Store<T> extends DelegateProcess<T, T, T> {
+  run() {
+    const state = (this.state = this.input);
     setTimeout(() => {
-      this.process.output = state;
+      this.output = state;
     }, 0);
   }
 }

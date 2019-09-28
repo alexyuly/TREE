@@ -1,8 +1,8 @@
-import { DelegateProcessRunner } from "../main";
+import { DelegateProcess } from "../main";
 
-class Set<T> extends DelegateProcessRunner<T, unknown, T> {
-  step() {
-    this.process.output = this.process.state;
+class Set<T> extends DelegateProcess<T, unknown, T> {
+  run() {
+    this.output = this.state;
   }
 }
 

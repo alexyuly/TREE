@@ -1,0 +1,39 @@
+{
+  "type": "component",
+  "props": {
+    "producers": [
+      {
+        "type": "value-producer",
+        "props": {
+          "value": "Hello World!"
+        }
+      }
+    ],
+    "consumers": [
+      {
+        "type": "component",
+        "props": {
+          "producers": [
+            {
+              "type": "delay",
+              "props": {
+                "state": {
+                  "type": "value-producer",
+                  "props": {
+                    "value": 1000
+                  }
+                }
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "type": "render",
+              "props": {}
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

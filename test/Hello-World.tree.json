@@ -7,6 +7,18 @@
         "props": {
           "value": "Hello World!"
         }
+      },
+      {
+        "type": "value-producer",
+        "props": {
+          "value": "Hello World! 2"
+        }
+      },
+      {
+        "type": "value-producer",
+        "props": {
+          "value": "Hello World! 3"
+        }
       }
     ],
     "consumers": [

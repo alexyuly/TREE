@@ -118,7 +118,6 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
     this._runner.init();
     if (spec.props.state) {
       Process.create(spec.props.state, [new StateListener(this)]);
-      // TODO The state process should listen through its input.
     }
   }
 

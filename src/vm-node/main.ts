@@ -1,49 +1,20 @@
-abstract class Listener<T> {
-  abstract send(value: T): void;
-}
-
-class StateListener<T> extends Listener<T> {
-  private _process: DelegateProcess<unknown, unknown, T>;
-
-  constructor(process: DelegateProcess<unknown, unknown, T>) {
-    super();
-    this._process = process;
-  }
-
-  send(value: T) {
-    this._process.state = value;
-  }
-}
-
-class InputListener<T> extends Listener<T> {
-  private _process: Process<unknown, T>;
-
-  constructor(process: Process<unknown, T>) {
-    super();
-    this._process = process;
-  }
-
-  send(value: T) {
-    this._process.input = value;
-  }
-}
-
-class OutputListener<T> extends Listener<T> {
-  private _process: Process<T, unknown>;
-
-  constructor(process: Process<T, unknown>) {
-    super();
-    this._process = process;
-  }
-
-  send(value: T) {
-    this._process.output = value;
-  }
-}
-
 interface ProcessSpec<O, I> {
   type: string;
   props: {};
+}
+
+interface DelegateProcessSpec<O, I, S> extends ProcessSpec<O, I> {
+  type: string;
+  props: {
+    state?: ProcessSpec<S, void>;
+  };
+}
+
+interface ValueProcessSpec<T> extends ProcessSpec<T, void> {
+  type: "value";
+  props: {
+    value: T;
+  };
 }
 
 interface ComponentProcessSpec<O, I, J> extends ProcessSpec<O, I> {
@@ -60,6 +31,12 @@ function isComponentProcessSpec<O, I>(
   return spec.type === "component";
 }
 
+function isValueProcessSpec<O>(
+  spec: ProcessSpec<O, void>
+): spec is ValueProcessSpec<O> {
+  return spec.type === "value";
+}
+
 abstract class Process<O, I> {
   static create<OUT, IN>(
     spec: ProcessSpec<OUT, IN>,
@@ -67,6 +44,9 @@ abstract class Process<O, I> {
   ) {
     if (isComponentProcessSpec(spec)) {
       return new ComponentProcess(spec, listeners);
+    }
+    if (isValueProcessSpec(spec)) {
+      return new ValueProcess(spec, listeners);
     }
     return new DelegateProcess(spec, listeners);
   }
@@ -78,7 +58,7 @@ abstract class Process<O, I> {
     this._listeners = listeners;
   }
 
-  protected abstract run(): void;
+  protected run() {}
 
   get input() {
     return this._input;
@@ -96,14 +76,7 @@ abstract class Process<O, I> {
   }
 }
 
-export interface DelegateProcessSpec<O, I, S> extends ProcessSpec<O, I> {
-  type: string;
-  props: {
-    state?: ProcessSpec<S, unknown>;
-  };
-}
-
-export class DelegateProcess<O, I, S> extends Process<O, I> {
+class DelegateProcess<O, I, S> extends Process<O, I> {
   private _runner: DelegateProcessRunner<O, I, S>;
   private _state: S;
 
@@ -130,7 +103,7 @@ export class DelegateProcess<O, I, S> extends Process<O, I> {
   }
 }
 
-export class DelegateProcessRunner<O, I, S> {
+class DelegateProcessRunner<O, I, S> {
   protected process: DelegateProcess<O, I, S>;
   protected spec: DelegateProcessSpec<O, I, S>;
 
@@ -147,6 +120,13 @@ export class DelegateProcessRunner<O, I, S> {
   step() {}
 }
 
+class ValueProcess<T> extends Process<T, void> {
+  constructor(spec: ValueProcessSpec<T>, listeners?: Listener<T>[]) {
+    super(listeners);
+    this.output = spec.props.value;
+  }
+}
+
 class ComponentProcess<O, I, J> extends Process<O, I> {
   private _producerListeners: Listener<I>[];
 
@@ -158,6 +138,7 @@ class ComponentProcess<O, I, J> extends Process<O, I> {
     this._producerListeners = spec.props.producers.map(
       x => new InputListener(Process.create(x, consumerListeners))
     );
+    // TODO Connect each Store with its correct InputListeners.
   }
 
   run() {
@@ -166,6 +147,51 @@ class ComponentProcess<O, I, J> extends Process<O, I> {
     }
   }
 }
+
+abstract class Listener<T> {
+  abstract send(value: T): void;
+}
+
+class OutputListener<T> extends Listener<T> {
+  private _process: Process<T, unknown>;
+
+  constructor(process: Process<T, unknown>) {
+    super();
+    this._process = process;
+  }
+
+  send(value: T) {
+    this._process.output = value;
+  }
+}
+
+class InputListener<T> extends Listener<T> {
+  private _process: Process<unknown, T>;
+
+  constructor(process: Process<unknown, T>) {
+    super();
+    this._process = process;
+  }
+
+  send(value: T) {
+    this._process.input = value;
+  }
+}
+
+class StateListener<T> extends Listener<T> {
+  private _process: DelegateProcess<unknown, unknown, T>;
+
+  constructor(process: DelegateProcess<unknown, unknown, T>) {
+    super();
+    this._process = process;
+  }
+
+  send(value: T) {
+    this._process.state = value;
+  }
+}
+
+export { DelegateProcessRunner };
 
 export default function main<O, I, J>(spec: ComponentProcessSpec<O, I, J>) {
   new ComponentProcess(spec);

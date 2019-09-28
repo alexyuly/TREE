@@ -1,6 +1,6 @@
 import { DelegateProcessRunner } from "../main";
 
-export default class Delay<T> extends DelegateProcessRunner<T, T, number> {
+class Delay<T> extends DelegateProcessRunner<T, T, number> {
   step() {
     const input = this.process.input;
     setTimeout(() => {
@@ -8,3 +8,5 @@ export default class Delay<T> extends DelegateProcessRunner<T, T, number> {
     }, this.process.state);
   }
 }
+
+export default Delay;

@@ -1,0 +1,3 @@
+< 'Hello World!'
+| delay 1000
+> render

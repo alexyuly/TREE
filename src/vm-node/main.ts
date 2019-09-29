@@ -109,7 +109,7 @@ class Stream<O, I> {
 enum StreamOperator {
   CONSUMER = "\x1b[2m| \x1b[0m\x1b[31m> \x1b[0m",
   PRODUCER = "\x1b[2m| \x1b[0m\x1b[32m< \x1b[0m",
-  STATE = "  ^ "
+  STATE = "\x1b[2m| \x1b[0m\x1b[33m^ \x1b[0m"
 }
 
 class StreamDebug {
@@ -132,7 +132,7 @@ class StreamDebug {
       if (isBroadcastSpec(spec) || isListenerSpec(spec)) {
         info = `[${spec.props.key}]`;
       } else if (isComponentSpec(spec)) {
-        info = spec.type;
+        info = `\x1b[2m${spec.type}\x1b[0m`;
       } else if (isValueSpec(spec)) {
         info = JSON.stringify(spec.props.value);
       }

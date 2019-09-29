@@ -18,6 +18,13 @@ interface ComponentSpec<OUT, IN, JOIN> extends Spec<OUT, IN> {
   };
 }
 
+interface ListenerSpec<T> extends Spec<T, T> {
+  type: "listener";
+  props: {
+    key: string;
+  };
+}
+
 interface StaticStreamSpec<OUT, IN, STATE> extends Spec<OUT, IN> {
   type: string;
   props: {
@@ -40,6 +47,10 @@ function isComponentSpec<O, I>(
   spec: Spec<O, I>
 ): spec is ComponentSpec<O, I, unknown> {
   return spec.type === "component";
+}
+
+function isListenerSpec<T>(spec: Spec<T, T>): spec is BroadcastSpec<T> {
+  return spec.type === "listener";
 }
 
 function isValueSpec<T>(spec: Spec<T, null>): spec is ValueSpec<T> {
@@ -133,7 +144,7 @@ class Component<O, I, J> extends Stream<O, I> {
 
     this._producers = [];
     for (const producerSpec of spec.props.producers) {
-      if (isBroadcastSpec(producerSpec)) {
+      if (isListenerSpec(producerSpec)) {
         scope.addBroadcastListeners(producerSpec.props.key, consumers);
       } else {
         this._producers.push(

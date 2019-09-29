@@ -13,7 +13,7 @@
         "props": {
           "producers": [
             {
-              "type": "broadcast",
+              "type": "listener",
               "props": {
                 "key": "Count"
               }

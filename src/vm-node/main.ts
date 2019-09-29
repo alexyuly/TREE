@@ -49,7 +49,7 @@ function isComponentSpec<O, I>(
   return spec.type === "component";
 }
 
-function isListenerSpec<T>(spec: Spec<T, T>): spec is BroadcastSpec<T> {
+function isListenerSpec<T>(spec: Spec<T, T>): spec is ListenerSpec<T> {
   return spec.type === "listener";
 }
 

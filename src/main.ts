@@ -1,4 +1,6 @@
+import * as fs from "fs";
 import vmJs from "./vm-node/main";
 
-// Run the Hello-World test spec:
-vmJs(require("../test/Hello-World.tree.json"));
+const [, , path] = process.argv;
+const spec = JSON.parse(fs.readFileSync(path, "utf8"));
+vmJs(spec);

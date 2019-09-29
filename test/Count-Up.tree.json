@@ -1,0 +1,71 @@
+{
+  "type": "component",
+  "props": {
+    "producers": [
+      {
+        "type": "value",
+        "props": {
+          "value": 1
+        }
+      },
+      {
+        "type": "component",
+        "props": {
+          "producers": [
+            {
+              "type": "broadcast",
+              "props": {
+                "key": "Count"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "type": "component",
+              "props": {
+                "producers": [
+                  {
+                    "type": "delay",
+                    "props": {
+                      "state": {
+                        "type": "value",
+                        "props": {
+                          "value": 1000
+                        }
+                      }
+                    }
+                  }
+                ],
+                "consumers": [
+                  {
+                    "type": "add",
+                    "props": {
+                      "state": {
+                        "type": "value",
+                        "props": {
+                          "value": 1
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "consumers": [
+      {
+        "type": "broadcast",
+        "props": {
+          "key": "Count"
+        }
+      },
+      {
+        "type": "render",
+        "props": {}
+      }
+    ]
+  }
+}

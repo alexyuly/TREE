@@ -1,66 +1,84 @@
-interface ProcessSpec<O, I> {
+interface Spec<OUT, IN> {
   type: string;
   props: {};
 }
 
-interface DelegateProcessSpec<O, I, S> extends ProcessSpec<O, I> {
-  type: string;
+interface BroadcastSpec<T> extends Spec<T, T> {
+  type: "broadcast";
   props: {
-    state?: ProcessSpec<S, void>;
+    key: string;
   };
 }
 
-interface ValueProcessSpec<T> extends ProcessSpec<T, void> {
+interface ComponentSpec<OUT, IN, JOIN> extends Spec<OUT, IN> {
+  type: "component";
+  props: {
+    producers: Spec<JOIN, IN>[];
+    consumers: Spec<OUT, JOIN>[];
+  };
+}
+
+interface StaticStreamSpec<OUT, IN, STATE> extends Spec<OUT, IN> {
+  type: string;
+  props: {
+    state: Spec<STATE, null>;
+  };
+}
+
+interface ValueSpec<T> extends Spec<T, null> {
   type: "value";
   props: {
     value: T;
   };
 }
 
-interface ComponentProcessSpec<O, I, J> extends ProcessSpec<O, I> {
-  type: "component";
-  props: {
-    producers: ProcessSpec<J, I>[];
-    consumers: ProcessSpec<O, J>[];
-  };
+function isBroadcastSpec<T>(spec: Spec<T, T>): spec is BroadcastSpec<T> {
+  return spec.type === "broadcast";
 }
 
-function isComponentProcessSpec<O, I>(
-  spec: ProcessSpec<O, I>
-): spec is ComponentProcessSpec<O, I, unknown> {
+function isComponentStreamSpec<O, I>(
+  spec: Spec<O, I>
+): spec is ComponentSpec<O, I, unknown> {
   return spec.type === "component";
 }
 
-function isValueProcessSpec<O>(
-  spec: ProcessSpec<O, void>
-): spec is ValueProcessSpec<O> {
+function isValueStreamSpec<T>(spec: Spec<T, null>): spec is ValueSpec<T> {
   return spec.type === "value";
 }
 
-abstract class Process<O, I> {
+class Stream<O, I> {
   static create<OUT, IN>(
-    spec: ProcessSpec<OUT, IN>,
-    listeners: Listener<OUT>[]
-  ) {
-    if (isComponentProcessSpec(spec)) {
-      return new ComponentProcess(spec, listeners);
+    spec: Spec<OUT, IN>,
+    listeners: Listener<OUT>[] = [],
+    scope = new StreamScope()
+  ): Stream<OUT, IN> {
+    if (isComponentStreamSpec(spec)) {
+      return new Component(spec, listeners, scope);
     }
-    if (isValueProcessSpec(spec)) {
-      return new ValueProcess(spec, listeners);
+    if (isValueStreamSpec(spec)) {
+      return new Value(spec, listeners, scope);
     }
-    const DerivedDelegateProcess: typeof DelegateProcess = require(`./api/${spec.type}.tree`)
-      .default;
-    return new DerivedDelegateProcess(spec, listeners);
+    const S: typeof Stream = require(`./api/${spec.type}.tree`).default;
+    return new S(spec, listeners, scope);
   }
 
-  private _input: I;
-  private _listeners: Listener<O>[];
+  protected readonly spec: Spec<O, I>;
+  protected readonly listeners: Listener<O>[];
+  protected readonly scope: StreamScope;
 
-  protected constructor(listeners: Listener<O>[] = []) {
-    this._listeners = listeners;
+  protected constructor(
+    spec: Spec<O, I>,
+    listeners: Listener<O>[] = [],
+    scope = new StreamScope()
+  ) {
+    this.spec = spec;
+    this.listeners = listeners;
+    this.scope = scope;
   }
 
   protected run() {}
+
+  private _input: I;
 
   get input() {
     return this._input;
@@ -72,24 +90,84 @@ abstract class Process<O, I> {
   }
 
   set output(value: O) {
-    for (const listener of this._listeners) {
+    for (const listener of this.listeners) {
       listener.send(value);
     }
   }
 }
 
-class DelegateProcess<O, I, S> extends Process<O, I> {
-  private _state: S;
+class StreamScope {
+  private readonly _broadcasts = new Map<string, Broadcast<unknown>>();
 
-  constructor(spec: DelegateProcessSpec<O, I, S>, listeners?: Listener<O>[]) {
-    super(listeners);
-    if (spec.props.state) {
-      Process.create(spec.props.state, [new StateListener(this)]);
+  addBroadcast(key: string, broadcast: Broadcast<unknown>) {
+    if (this._broadcasts.has(key)) {
+      throw new Error();
     }
-    this.init();
+    this._broadcasts.set(key, broadcast);
   }
 
-  protected init() {}
+  addBroadcastListeners(key: string, listeners: Listener<unknown>[]) {
+    this._broadcasts.get(key).addListeners(listeners);
+  }
+}
+
+class Component<O, I, J> extends Stream<O, I> {
+  private _producers: Listener<I>[];
+
+  constructor(
+    spec: ComponentSpec<O, I, J>,
+    listeners: Listener<O>[],
+    scope: StreamScope
+  ) {
+    super(spec, listeners, scope);
+
+    const consumers: Listener<J>[] = [];
+    for (const consumerSpec of spec.props.consumers) {
+      let consumer: Listener<J>;
+      if (isBroadcastSpec(consumerSpec)) {
+        const broadcast = new Broadcast();
+        scope.addBroadcast(consumerSpec.props.key, broadcast);
+        consumer = broadcast;
+      } else {
+        consumer = new StreamInputListener(
+          Stream.create(consumerSpec, [new StreamOutputListener(this)], scope)
+        );
+      }
+      consumers.push(consumer);
+    }
+
+    this._producers = [];
+    for (const producerSpec of spec.props.producers) {
+      if (isBroadcastSpec(producerSpec)) {
+        scope.addBroadcastListeners(producerSpec.props.key, consumers);
+      } else {
+        this._producers.push(
+          new StreamInputListener(Stream.create(producerSpec, consumers, scope))
+        );
+      }
+    }
+  }
+
+  run() {
+    for (const producer of this._producers) {
+      producer.send(this.input);
+    }
+  }
+}
+
+class StaticStream<O, I, S> extends Stream<O, I> {
+  private _state: S;
+
+  constructor(
+    spec: StaticStreamSpec<O, I, S>,
+    listeners: Listener<O>[],
+    scope: StreamScope
+  ) {
+    super(spec, listeners, scope);
+    if (spec.props.state) {
+      Stream.create(spec.props.state, [new StreamStateListener(this)], scope);
+    }
+  }
 
   get state() {
     return this._state;
@@ -100,31 +178,14 @@ class DelegateProcess<O, I, S> extends Process<O, I> {
   }
 }
 
-class ValueProcess<T> extends Process<T, void> {
-  constructor(spec: ValueProcessSpec<T>, listeners?: Listener<T>[]) {
-    super(listeners);
+class Value<T> extends Stream<T, null> {
+  constructor(
+    spec: ValueSpec<T>,
+    listeners: Listener<T>[],
+    scope: StreamScope
+  ) {
+    super(spec, listeners, scope);
     this.output = spec.props.value;
-  }
-}
-
-class ComponentProcess<O, I, J> extends Process<O, I> {
-  private _producerListeners: Listener<I>[];
-
-  constructor(spec: ComponentProcessSpec<O, I, J>, listeners?: Listener<O>[]) {
-    super(listeners);
-    const consumerListeners = spec.props.consumers.map(
-      x => new InputListener(Process.create(x, [new OutputListener(this)]))
-    );
-    this._producerListeners = spec.props.producers.map(
-      x => new InputListener(Process.create(x, consumerListeners))
-    );
-    // TODO Connect each Store with its correct InputListeners.
-  }
-
-  run() {
-    for (const producerListener of this._producerListeners) {
-      producerListener.send(this.input);
-    }
   }
 }
 
@@ -132,47 +193,63 @@ abstract class Listener<T> {
   abstract send(value: T): void;
 }
 
-class OutputListener<T> extends Listener<T> {
-  private _process: Process<T, unknown>;
+class Broadcast<T> extends Listener<T> {
+  private readonly _listeners: Listener<T>[] = [];
 
-  constructor(process: Process<T, unknown>) {
-    super();
-    this._process = process;
+  addListeners(listeners: Listener<T>[]) {
+    this._listeners.push(...listeners);
   }
 
   send(value: T) {
-    this._process.output = value;
+    setTimeout(() => {
+      for (const listener of this._listeners) {
+        listener.send(value);
+      }
+    }, 0);
   }
 }
 
-class InputListener<T> extends Listener<T> {
-  private _process: Process<unknown, T>;
+class StreamOutputListener<T> extends Listener<T> {
+  private _stream: Stream<T, unknown>;
 
-  constructor(process: Process<unknown, T>) {
+  constructor(stream: Stream<T, unknown>) {
     super();
-    this._process = process;
+    this._stream = stream;
   }
 
   send(value: T) {
-    this._process.input = value;
+    this._stream.output = value;
   }
 }
 
-class StateListener<T> extends Listener<T> {
-  private _process: DelegateProcess<unknown, unknown, T>;
+class StreamInputListener<T> extends Listener<T> {
+  private _stream: Stream<unknown, T>;
 
-  constructor(process: DelegateProcess<unknown, unknown, T>) {
+  constructor(stream: Stream<unknown, T>) {
     super();
-    this._process = process;
+    this._stream = stream;
   }
 
   send(value: T) {
-    this._process.state = value;
+    this._stream.input = value;
   }
 }
 
-export { DelegateProcess };
+class StreamStateListener<T> extends Listener<T> {
+  private _stream: StaticStream<unknown, unknown, T>;
 
-export default function main<O, I, J>(spec: ComponentProcessSpec<O, I, J>) {
-  new ComponentProcess(spec);
+  constructor(stream: StaticStream<unknown, unknown, T>) {
+    super();
+    this._stream = stream;
+  }
+
+  send(value: T) {
+    this._stream.state = value;
+  }
+}
+
+export { Stream, StaticStream };
+
+export default function main(spec: Spec<unknown, unknown>) {
+  Stream.create(spec);
 }

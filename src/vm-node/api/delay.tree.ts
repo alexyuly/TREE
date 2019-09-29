@@ -1,6 +1,6 @@
-import { DelegateProcess } from "../main";
+import { StaticStream } from "../main";
 
-class Delay<T> extends DelegateProcess<T, T, number> {
+class Delay<T> extends StaticStream<T, T, number> {
   run() {
     const input = this.input;
     setTimeout(() => {

@@ -1,6 +1,6 @@
-import { DelegateProcess } from "../main";
+import { StaticStream } from "../main";
 
-class Add extends DelegateProcess<number, number, number> {
+class Add extends StaticStream<number, number, number> {
   run() {
     this.output = this.input + this.state;
   }

@@ -3,17 +3,17 @@
   "props": {
     "producers": [
       {
+        "type": "value",
+        "props": {
+          "value": "Hello World!"
+        }
+      }
+    ],
+    "consumers": [
+      {
         "type": "component",
         "props": {
           "producers": [
-            {
-              "type": "value",
-              "props": {
-                "value": "Hello World!"
-              }
-            }
-          ],
-          "consumers": [
             {
               "type": "delay",
               "props": {
@@ -25,40 +25,14 @@
                 }
               }
             }
-          ]
-        }
-      },
-      {
-        "type": "component",
-        "props": {
-          "producers": [
-            {
-              "type": "value",
-              "props": {
-                "value": "Hello World! 2"
-              }
-            }
           ],
           "consumers": [
             {
-              "type": "delay",
-              "props": {
-                "state": {
-                  "type": "value",
-                  "props": {
-                    "value": 2000
-                  }
-                }
-              }
+              "type": "render",
+              "props": {}
             }
           ]
         }
-      }
-    ],
-    "consumers": [
-      {
-        "type": "render",
-        "props": {}
       }
     ]
   }

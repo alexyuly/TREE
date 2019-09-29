@@ -2,7 +2,7 @@
   "author": "Alex Yuly",
   "license": "MIT",
   "scripts": {
-    "test": "tsc; node ./dist/main.js"
+    "start": "tsc; node ./dist/main.js"
   },
   "husky": {
     "hooks": {

@@ -107,8 +107,9 @@ class Stream<O, I> {
 }
 
 enum StreamOperator {
-  CONSUMER = "> ",
-  PRODUCER = "< "
+  CONSUMER = "\x1b[2m| \x1b[0m\x1b[31m> \x1b[0m",
+  PRODUCER = "\x1b[2m| \x1b[0m\x1b[32m< \x1b[0m",
+  STATE = "  ^ "
 }
 
 class StreamDebug {
@@ -135,8 +136,8 @@ class StreamDebug {
       } else if (isValueSpec(spec)) {
         info = JSON.stringify(spec.props.value);
       }
-      const indent = new Array(this._level).fill("  ").join("");
-      console.debug(`${indent}${operator}${info}`);
+      const indent = new Array(this._level).fill("\x1b[2m|   \x1b[0m").join("");
+      console.debug(`${indent}${operator}${info}\x1b[0m`);
     }
   }
 }
@@ -221,7 +222,7 @@ class StaticStream<O, I, S> extends Stream<O, I> {
   ) {
     super(spec, listeners, scope, debug);
     if (spec.props.state) {
-      debug.printSpec(spec.props.state, StreamOperator.PRODUCER);
+      debug.printSpec(spec.props.state, StreamOperator.STATE);
       Stream.create(
         spec.props.state,
         [new StreamStateListener(this)],

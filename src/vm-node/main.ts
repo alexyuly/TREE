@@ -128,13 +128,15 @@ class StreamDebug {
 
   printSpec<O, I>(spec: Spec<O, I>, operator: StreamOperator) {
     if (StreamDebug.ENABLED) {
-      let info = spec.type;
+      let info: string;
       if (isBroadcastSpec(spec) || isListenerSpec(spec)) {
-        info = `[${spec.props.key}]`;
+        info = `\x1b[33m\x1b[1m[${spec.props.key}]\x1b[0m`;
       } else if (isComponentSpec(spec)) {
         info = `\x1b[2m${spec.type}\x1b[0m`;
       } else if (isValueSpec(spec)) {
         info = JSON.stringify(spec.props.value);
+      } else {
+        info = `\x1b[1m${spec.type}\x1b[0m`;
       }
       const indent = new Array(this._level).fill("\x1b[2m|   \x1b[0m").join("");
       console.debug(`${indent}${operator}${info}\x1b[0m`);

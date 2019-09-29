@@ -36,13 +36,13 @@ function isBroadcastSpec<T>(spec: Spec<T, T>): spec is BroadcastSpec<T> {
   return spec.type === "broadcast";
 }
 
-function isComponentStreamSpec<O, I>(
+function isComponentSpec<O, I>(
   spec: Spec<O, I>
 ): spec is ComponentSpec<O, I, unknown> {
   return spec.type === "component";
 }
 
-function isValueStreamSpec<T>(spec: Spec<T, null>): spec is ValueSpec<T> {
+function isValueSpec<T>(spec: Spec<T, null>): spec is ValueSpec<T> {
   return spec.type === "value";
 }
 
@@ -52,33 +52,28 @@ class Stream<O, I> {
     listeners: Listener<OUT>[] = [],
     scope = new StreamScope()
   ): Stream<OUT, IN> {
-    if (isComponentStreamSpec(spec)) {
+    if (isComponentSpec(spec)) {
       return new Component(spec, listeners, scope);
     }
-    if (isValueStreamSpec(spec)) {
+    if (isValueSpec(spec)) {
       return new Value(spec, listeners, scope);
     }
     const S: typeof Stream = require(`./api/${spec.type}.tree`).default;
     return new S(spec, listeners, scope);
   }
 
-  protected readonly spec: Spec<O, I>;
-  protected readonly listeners: Listener<O>[];
-  protected readonly scope: StreamScope;
+  private _input: I;
+  private readonly _listeners: Listener<O>[];
 
   protected constructor(
     spec: Spec<O, I>,
-    listeners: Listener<O>[] = [],
-    scope = new StreamScope()
+    listeners: Listener<O>[],
+    scope: StreamScope
   ) {
-    this.spec = spec;
-    this.listeners = listeners;
-    this.scope = scope;
+    this._listeners = listeners;
   }
 
   protected run() {}
-
-  private _input: I;
 
   get input() {
     return this._input;
@@ -90,7 +85,7 @@ class Stream<O, I> {
   }
 
   set output(value: O) {
-    for (const listener of this.listeners) {
+    for (const listener of this._listeners) {
       listener.send(value);
     }
   }
@@ -112,7 +107,7 @@ class StreamScope {
 }
 
 class Component<O, I, J> extends Stream<O, I> {
-  private _producers: Listener<I>[];
+  private readonly _producers: Listener<I>[];
 
   constructor(
     spec: ComponentSpec<O, I, J>,
@@ -210,7 +205,7 @@ class Broadcast<T> extends Listener<T> {
 }
 
 class StreamOutputListener<T> extends Listener<T> {
-  private _stream: Stream<T, unknown>;
+  private readonly _stream: Stream<T, unknown>;
 
   constructor(stream: Stream<T, unknown>) {
     super();
@@ -223,7 +218,7 @@ class StreamOutputListener<T> extends Listener<T> {
 }
 
 class StreamInputListener<T> extends Listener<T> {
-  private _stream: Stream<unknown, T>;
+  private readonly _stream: Stream<unknown, T>;
 
   constructor(stream: Stream<unknown, T>) {
     super();
@@ -236,7 +231,7 @@ class StreamInputListener<T> extends Listener<T> {
 }
 
 class StreamStateListener<T> extends Listener<T> {
-  private _stream: StaticStream<unknown, unknown, T>;
+  private readonly _stream: StaticStream<unknown, unknown, T>;
 
   constructor(stream: StaticStream<unknown, unknown, T>) {
     super();

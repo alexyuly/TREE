@@ -12,6 +12,10 @@ Example 1, Hello-World:
 
 `yarn start ./test/Hello-World.tree.json`
 
-Example 2, Count-Up:
+Example 2, Count-To-Ten:
 
-`yarn start ./test/Count-Up.tree.json`
+`yarn start ./test/Count-To-Ten.tree.json`
+
+Example 3, Count-Loop:
+
+`yarn start ./test/Count-Loop.tree.json`

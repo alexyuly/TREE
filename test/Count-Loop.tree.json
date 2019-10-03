@@ -38,12 +38,41 @@
                 ],
                 "consumers": [
                   {
-                    "type": "add",
+                    "type": "switch",
                     "props": {
-                      "state": {
-                        "type": "value",
+                      "conditions": [
+                        {
+                          "type": "under",
+                          "props": {
+                            "state": {
+                              "type": "value",
+                              "props": {
+                                "value": 5
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "positive": {
+                        "type": "add",
                         "props": {
-                          "value": 1
+                          "state": {
+                            "type": "value",
+                            "props": {
+                              "value": 1
+                            }
+                          }
+                        }
+                      },
+                      "negative": {
+                        "type": "pass",
+                        "props": {
+                          "state": {
+                            "type": "value",
+                            "props": {
+                              "value": 1
+                            }
+                          }
                         }
                       }
                     }

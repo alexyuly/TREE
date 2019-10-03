@@ -1,0 +1,89 @@
+{
+  "type": "component",
+  "props": {
+    "producers": [
+      {
+        "type": "value",
+        "props": {
+          "value": 1
+        }
+      },
+      {
+        "type": "component",
+        "props": {
+          "producers": [
+            {
+              "type": "listener",
+              "props": {
+                "key": "Count"
+              }
+            }
+          ],
+          "consumers": [
+            {
+              "type": "component",
+              "props": {
+                "producers": [
+                  {
+                    "type": "delay",
+                    "props": {
+                      "state": {
+                        "type": "value",
+                        "props": {
+                          "value": 1000
+                        }
+                      }
+                    }
+                  }
+                ],
+                "consumers": [
+                  {
+                    "type": "gate",
+                    "props": {
+                      "conditions": [
+                        {
+                          "type": "under",
+                          "props": {
+                            "state": {
+                              "type": "value",
+                              "props": {
+                                "value": 10
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "positive": {
+                        "type": "add",
+                        "props": {
+                          "state": {
+                            "type": "value",
+                            "props": {
+                              "value": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "consumers": [
+      {
+        "type": "broadcast",
+        "props": {
+          "key": "Count"
+        }
+      },
+      {
+        "type": "render",
+        "props": {}
+      }
+    ]
+  }
+}

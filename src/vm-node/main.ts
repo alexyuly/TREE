@@ -5,6 +5,13 @@ interface Spec<OUT, IN> {
   props: {};
 }
 
+interface StoreSpec<OUT, IN, STATE> extends Spec<OUT, IN> {
+  type: string;
+  props: {
+    state: Spec<STATE, null>;
+  };
+}
+
 interface ComponentSpec<OUT, IN, JOIN> extends Spec<OUT, IN> {
   type: "component";
   props: {
@@ -14,7 +21,7 @@ interface ComponentSpec<OUT, IN, JOIN> extends Spec<OUT, IN> {
 }
 
 interface GateSpec<OUT, IN> extends Spec<OUT, IN> {
-  type: string;
+  type: "gate" | "switch";
   props: {
     conditions: Spec<boolean, IN>[];
     positive: Spec<OUT, IN>;
@@ -35,33 +42,6 @@ interface ValueSpec<T> extends Spec<T, null> {
   props: {
     value: T;
   };
-}
-
-interface StaticStreamSpec<OUT, IN, STATE> extends Spec<OUT, IN> {
-  type: string;
-  props: {
-    state: Spec<STATE, null>;
-  };
-}
-
-interface AddSpec extends StaticStreamSpec<number, number, number> {
-  type: "add";
-}
-
-interface DelaySpec<T> extends StaticStreamSpec<T, T, number> {
-  type: "delay";
-}
-
-interface PassSpec<OUT, IN, STATE> extends StaticStreamSpec<OUT, IN, STATE> {
-  type: "pass";
-}
-
-interface RenderSpec<T> extends Spec<null, T> {
-  type: "render";
-}
-
-interface UnderSpec extends StaticStreamSpec<null, number, number> {
-  type: "under";
 }
 
 interface ListenerSpec<T> extends Spec<T, T> {
@@ -96,32 +76,25 @@ function isValueSpec<T>(spec: Spec<T, null>): spec is ValueSpec<T> {
   return spec.type === "value";
 }
 
-function isAddSpec<O, I>(spec: Spec<O, I>): spec is AddSpec {
-  return spec.type === "add";
-}
-
-function isDelaySpec<T>(spec: Spec<T, T>): spec is DelaySpec<T> {
-  return spec.type === "delay";
-}
-
-function isPassSpec<O, I>(spec: Spec<O, I>): spec is PassSpec<O, I, O> {
-  return spec.type === "pass";
-}
-
-function isRenderSpec<O, I>(spec: Spec<O, I>): spec is RenderSpec<I> {
-  return spec.type === "render";
-}
-
-function isUnderSpec<O, I>(spec: Spec<O, I>): spec is UnderSpec {
-  return spec.type === "under";
-}
-
 function isListenerSpec<T>(spec: Spec<T, T>): spec is ListenerSpec<T> {
   return spec.type === "listener";
 }
 
 function isBroadcastSpec<T>(spec: Spec<T, T>): spec is BroadcastSpec<T> {
   return spec.type === "broadcast";
+}
+
+class StreamScope {
+  private readonly _broadcasts = new Map<string, Broadcast<unknown>>();
+
+  addBroadcast(key: string, broadcast: Broadcast<unknown>) {
+    assert(!this._broadcasts.has(key));
+    this._broadcasts.set(key, broadcast);
+  }
+
+  addListeners(key: string, listeners: Listener<unknown>[]) {
+    this._broadcasts.get(key).addListeners(listeners);
+  }
 }
 
 abstract class Stream<O, I> {
@@ -142,32 +115,9 @@ abstract class Stream<O, I> {
     if (isValueSpec(spec)) {
       return new Value(spec, listeners, scope);
     }
-    if (isAddSpec(spec)) {
-      // TODO Fix types.
-      return (new Add(
-        spec,
-        (listeners as unknown) as Listener<number>[],
-        scope
-      ) as unknown) as Stream<OUT, IN>;
-    }
-    if (isDelaySpec(spec)) {
-      // TODO Fix types.
-      return (new Delay(spec, listeners, scope) as unknown) as Stream<OUT, IN>;
-    }
-    if (isPassSpec(spec)) {
-      return new Pass(spec, listeners, scope);
-    }
-    if (isRenderSpec(spec)) {
-      return new Render(spec, listeners, scope);
-    }
-    if (isUnderSpec(spec)) {
-      // TODO Fix types.
-      return (new Under(
-        spec,
-        (listeners as unknown) as Listener<boolean>[],
-        scope
-      ) as unknown) as Stream<OUT, IN>;
-    }
+    const StreamType: typeof Unknown = require(`./api/${spec.type}.tree`)
+      .default;
+    return new StreamType(spec, listeners, scope);
   }
 
   private _input: I;
@@ -199,17 +149,39 @@ abstract class Stream<O, I> {
   }
 }
 
-class StreamScope {
-  private readonly _broadcasts = new Map<string, Broadcast<unknown>>();
+abstract class Store<O, I, S> extends Stream<O, I> {
+  private _state: S;
 
-  addBroadcast(key: string, broadcast: Broadcast<unknown>) {
-    assert(!this._broadcasts.has(key));
-    this._broadcasts.set(key, broadcast);
+  constructor(
+    spec: StoreSpec<O, I, S>,
+    listeners: Listener<O>[],
+    scope: StreamScope
+  ) {
+    super(spec, listeners, scope);
+    if (spec.props.state) {
+      Stream.create(spec.props.state, [new StreamStateListener(this)], scope);
+    }
   }
 
-  addListeners(key: string, listeners: Listener<unknown>[]) {
-    this._broadcasts.get(key).addListeners(listeners);
+  get state() {
+    return this._state;
   }
+
+  set state(value) {
+    this._state = value;
+  }
+}
+
+abstract class ImmediateStream<O, I> extends Stream<O, I> {
+  abstract run(): O;
+}
+
+abstract class ImmediateStore<O, I, S> extends Store<O, I, S> {
+  abstract run(): O;
+}
+
+class Unknown<O, I> extends Stream<O, I> {
+  run() {}
 }
 
 class Component<O, I, J> extends Stream<O, I> {
@@ -332,70 +304,6 @@ class Value<T> extends Stream<T, null> {
   run() {}
 }
 
-abstract class StaticStream<O, I, S> extends Stream<O, I> {
-  private _state: S;
-
-  constructor(
-    spec: StaticStreamSpec<O, I, S>,
-    listeners: Listener<O>[],
-    scope: StreamScope
-  ) {
-    super(spec, listeners, scope);
-    if (spec.props.state) {
-      Stream.create(spec.props.state, [new StreamStateListener(this)], scope);
-    }
-  }
-
-  get state() {
-    return this._state;
-  }
-
-  set state(value) {
-    this._state = value;
-  }
-}
-
-abstract class ImmediateStream<O, I> extends Stream<O, I> {
-  abstract run(): O;
-}
-
-abstract class ImmediateStaticStream<O, I, S> extends StaticStream<O, I, S> {
-  abstract run(): O;
-}
-
-class Add extends StaticStream<number, number, number> {
-  run() {
-    this.output = this.input + this.state;
-  }
-}
-
-class Delay<T> extends StaticStream<T, T, number> {
-  run() {
-    const input = this.input;
-    setTimeout(() => {
-      this.output = input;
-    }, this.state);
-  }
-}
-
-class Pass<O, I> extends StaticStream<O, I, O> {
-  run() {
-    this.output = this.state;
-  }
-}
-
-class Render<T> extends Stream<null, T> {
-  run() {
-    console.log(this.input);
-  }
-}
-
-class Under extends ImmediateStaticStream<boolean, number, number> {
-  run() {
-    return this.input < this.state;
-  }
-}
-
 abstract class Listener<T> {
   abstract send(value: T): void;
 }
@@ -443,9 +351,9 @@ class StreamInputListener<T> extends Listener<T> {
 }
 
 class StreamStateListener<T> extends Listener<T> {
-  private readonly _stream: StaticStream<unknown, unknown, T>;
+  private readonly _stream: Store<unknown, unknown, T>;
 
-  constructor(stream: StaticStream<unknown, unknown, T>) {
+  constructor(stream: Store<unknown, unknown, T>) {
     super();
     this._stream = stream;
   }
@@ -455,7 +363,7 @@ class StreamStateListener<T> extends Listener<T> {
   }
 }
 
-export { Stream, StaticStream };
+export { ImmediateStore, ImmediateStream, Store, Stream };
 
 export default function main(spec: Spec<unknown, unknown>) {
   Stream.create(spec);

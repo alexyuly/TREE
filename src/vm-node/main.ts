@@ -63,17 +63,16 @@ class Stream<O, I> {
   static create<OUT, IN>(
     spec: Spec<OUT, IN>,
     listeners: Listener<OUT>[] = [],
-    scope = new StreamScope(),
-    debug = new StreamDebug()
+    scope = new StreamScope()
   ): Stream<OUT, IN> {
     if (isComponentSpec(spec)) {
-      return new Component(spec, listeners, scope, debug);
+      return new Component(spec, listeners, scope);
     }
     if (isValueSpec(spec)) {
-      return new Value(spec, listeners, scope, debug);
+      return new Value(spec, listeners, scope);
     }
     const S: typeof Stream = require(`./api/${spec.type}.tree`).default;
-    return new S(spec, listeners, scope, debug);
+    return new S(spec, listeners, scope);
   }
 
   private _input: I;
@@ -82,8 +81,7 @@ class Stream<O, I> {
   protected constructor(
     spec: Spec<O, I>,
     listeners: Listener<O>[],
-    scope: StreamScope,
-    debug: StreamDebug
+    scope: StreamScope
   ) {
     this._listeners = listeners;
   }
@@ -106,44 +104,6 @@ class Stream<O, I> {
   }
 }
 
-enum StreamOperator {
-  CONSUMER = "\x1b[2m| \x1b[0m\x1b[31m> \x1b[0m",
-  PRODUCER = "\x1b[2m| \x1b[0m\x1b[32m< \x1b[0m",
-  STATE = "\x1b[2m| \x1b[0m\x1b[33m^ \x1b[0m"
-}
-
-class StreamDebug {
-  // static readonly ENABLED = false;
-  static readonly ENABLED = true;
-
-  private _level: number;
-
-  constructor(level = 0) {
-    this._level = level;
-  }
-
-  nextLevel() {
-    return new StreamDebug(this._level + 1);
-  }
-
-  printSpec<O, I>(spec: Spec<O, I>, operator: StreamOperator) {
-    if (StreamDebug.ENABLED) {
-      let info: string;
-      if (isBroadcastSpec(spec) || isListenerSpec(spec)) {
-        info = `\x1b[33m\x1b[1m[${spec.props.key}]\x1b[0m`;
-      } else if (isComponentSpec(spec)) {
-        info = `\x1b[2m${spec.type}\x1b[0m`;
-      } else if (isValueSpec(spec)) {
-        info = JSON.stringify(spec.props.value);
-      } else {
-        info = `\x1b[1m${spec.type}\x1b[0m`;
-      }
-      const indent = new Array(this._level).fill("\x1b[2m|   \x1b[0m").join("");
-      console.debug(`${indent}${operator}${info}\x1b[0m`);
-    }
-  }
-}
-
 class StreamScope {
   private readonly _broadcasts = new Map<string, Broadcast<unknown>>();
 
@@ -152,7 +112,7 @@ class StreamScope {
     this._broadcasts.set(key, broadcast);
   }
 
-  addBroadcastListeners(key: string, listeners: Listener<unknown>[]) {
+  addListeners(key: string, listeners: Listener<unknown>[]) {
     this._broadcasts.get(key).addListeners(listeners);
   }
 }
@@ -163,28 +123,20 @@ class Component<O, I, J> extends Stream<O, I> {
   constructor(
     spec: ComponentSpec<O, I, J>,
     listeners: Listener<O>[],
-    scope: StreamScope,
-    debug: StreamDebug
+    scope: StreamScope
   ) {
-    super(spec, listeners, scope, debug);
+    super(spec, listeners, scope);
 
     const consumers: Listener<J>[] = [];
     for (const consumerSpec of spec.props.consumers) {
       let consumer: Listener<J>;
       if (isBroadcastSpec(consumerSpec)) {
-        debug.printSpec(consumerSpec, StreamOperator.CONSUMER);
         const broadcast = new Broadcast();
         scope.addBroadcast(consumerSpec.props.key, broadcast);
         consumer = broadcast;
       } else {
-        debug.printSpec(consumerSpec, StreamOperator.CONSUMER);
         consumer = new StreamInputListener(
-          Stream.create(
-            consumerSpec,
-            [new StreamOutputListener(this)],
-            scope,
-            debug.nextLevel()
-          )
+          Stream.create(consumerSpec, [new StreamOutputListener(this)], scope)
         );
       }
       consumers.push(consumer);
@@ -193,14 +145,10 @@ class Component<O, I, J> extends Stream<O, I> {
     this._producers = [];
     for (const producerSpec of spec.props.producers) {
       if (isListenerSpec(producerSpec)) {
-        debug.printSpec(producerSpec, StreamOperator.PRODUCER);
-        scope.addBroadcastListeners(producerSpec.props.key, consumers);
+        scope.addListeners(producerSpec.props.key, consumers);
       } else {
-        debug.printSpec(producerSpec, StreamOperator.PRODUCER);
         this._producers.push(
-          new StreamInputListener(
-            Stream.create(producerSpec, consumers, scope, debug.nextLevel())
-          )
+          new StreamInputListener(Stream.create(producerSpec, consumers, scope))
         );
       }
     }
@@ -219,18 +167,11 @@ class StaticStream<O, I, S> extends Stream<O, I> {
   constructor(
     spec: StaticStreamSpec<O, I, S>,
     listeners: Listener<O>[],
-    scope: StreamScope,
-    debug: StreamDebug
+    scope: StreamScope
   ) {
-    super(spec, listeners, scope, debug);
+    super(spec, listeners, scope);
     if (spec.props.state) {
-      debug.printSpec(spec.props.state, StreamOperator.STATE);
-      Stream.create(
-        spec.props.state,
-        [new StreamStateListener(this)],
-        scope,
-        debug.nextLevel()
-      );
+      Stream.create(spec.props.state, [new StreamStateListener(this)], scope);
     }
   }
 
@@ -247,10 +188,9 @@ class Value<T> extends Stream<T, null> {
   constructor(
     spec: ValueSpec<T>,
     listeners: Listener<T>[],
-    scope: StreamScope,
-    debug: StreamDebug
+    scope: StreamScope
   ) {
-    super(spec, listeners, scope, debug);
+    super(spec, listeners, scope);
     this.output = spec.props.value;
   }
 }

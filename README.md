@@ -2,20 +2,27 @@
 
 **TREE**, The Reactive Execution Engine, is a system for writing software applications.
 
-## Development
+## The Big Idea
 
-First, clone this repo and run `yarn` to install dependencies.
+Every software application can be reduced to a combination of
+- a *type* `T`,
+- *actors* which produce `T` values, and
+- *reactors* which consume `T` values.
 
-Then, run `yarn start` followed by the path to a compiled \*.tree.json file.
+A stream which combines an actor with a reactor looks like this:
 
-Example 1, Hello-World:
+```
+< act
+> react
+```
 
-`yarn start ./test/Hello-World.tree.json`
+A series of actors, followed by a series of reactors, will cause values to flow from the outputs of the actors, to the inputs of the reactors.
 
-Example 2, Count-To-Ten:
+A special reactor called a *loop* broadcasts values to other actors:
 
-`yarn start ./test/Count-To-Ten.tree.json`
-
-Example 3, Count-Loop:
-
-`yarn start ./test/Count-Loop.tree.json`
+```
+< start
+< reuse [Loop]
+> [Loop]
+> react
+```

@@ -1,8 +1,8 @@
-import { ImmediateStore } from "../main";
+import { StaticCondition } from "../main";
 
-class Under extends ImmediateStore<boolean, number, number> {
-  run() {
-    return this.input < this.state;
+class Under extends StaticCondition<number, number> {
+  test(input: number) {
+    return input < this.state;
   }
 }
 

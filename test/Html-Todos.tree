@@ -1,0 +1,61 @@
+< start
+< change-new-todo [App]
+< submit-new-todo [App]
+< complete-todo [App]
+> [App]
+> render
+
+App -> disk
+
+start =
+. new-todo =
+  . value = ''
+* todos
+
+change-new-todo =
+< html/change '#new-todo-value'
+| get .target .value
+> [Value]
+| [$]
+> set .new-todo .value [Value]
+
+submit-new-todo =
+< html/submit '#new-todo'
+| [$]
+> set .todos
+  - get .new-todo
+  + get .todos
+
+complete-todo =
+< html/click '.todo'
+| get .target .id
+> [Id]
+| [$]
+> update .todos {
+    filter {
+      !is .id [Id]
+    }
+  }
+render =
+< pass html/document
+  . body =
+    * child-nodes =
+      - html/form
+        . id = 'new-todo'
+        * child-nodes =
+          - html/input
+            . id = 'new-todo-value'
+            . type = 'text'
+            . value = get .new-todo .value
+          - html/input
+            . type = 'submit'
+      - html/ul
+        * child-nodes = map .todos {
+            html/li
+            * child-nodes =
+              - html/input
+                . id = get .id
+                . class = 'todo'
+                . type = 'checkbox'
+          }
+> html/render

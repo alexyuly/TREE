@@ -1,6 +1,6 @@
-import { Store } from "../main";
+import { StaticStream } from "../main";
 
-class Pass<O, I> extends Store<O, I, O> {
+class Pass<O, I> extends StaticStream<O, I, O> {
   run() {
     this.output = this.state;
   }

@@ -1,6 +1,6 @@
-import { Store } from "../main";
+import { StaticStream } from "../main";
 
-class Add extends Store<number, number, number> {
+class Add extends StaticStream<number, number, number> {
   run() {
     this.output = this.input + this.state;
   }

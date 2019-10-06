@@ -1,6 +1,6 @@
-import { StaticStream } from "../main";
+import { StreamWithState } from "../main";
 
-class Pass<O, I> extends StaticStream<O, I, O> {
+class Pass<O, I> extends StreamWithState<O, I, O> {
   run() {
     this.output = this.state;
   }

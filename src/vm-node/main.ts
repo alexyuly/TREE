@@ -5,7 +5,7 @@ interface Spec {
   props: {};
 }
 
-interface StaticSpec extends Spec {
+interface SpecWithState extends Spec {
   type: string;
   props: {
     state: Spec;
@@ -40,35 +40,13 @@ interface ValueSpec extends Spec {
   };
 }
 
-interface ListenerSpec extends Spec {
-  props: {
-    key: string;
-  };
-}
-
 interface BroadcastSpec extends Spec {
   props: {
     key: string;
   };
 }
 
-class Store<T> {
-  private _state: T;
-
-  constructor(spec: Spec, scope: StreamScope) {
-    Stream.create(spec, [new StateListener(this)], scope);
-  }
-
-  get state() {
-    return this._state;
-  }
-
-  set state(value) {
-    this._state = value;
-  }
-}
-
-class StreamScope {
+class Scope {
   private readonly _broadcasts = new Map<string, Broadcast<unknown>>();
 
   addBroadcast(key: string, broadcast: Broadcast<unknown>) {
@@ -81,38 +59,48 @@ class StreamScope {
   }
 }
 
+class Store<T> {
+  private _state: T;
+
+  constructor(spec: Spec, scope: Scope) {
+    Stream.create(spec, scope, [new StateListener(this)]);
+  }
+
+  get state() {
+    return this._state;
+  }
+
+  set state(value) {
+    this._state = value;
+  }
+}
+
 abstract class Stream<O, I> {
   static create(
     spec: Spec,
-    listeners: Listener<unknown>[] = [],
-    scope = new StreamScope()
+    scope = new Scope(),
+    listeners: Listener<unknown>[] = []
   ): Stream<unknown, unknown> {
     switch (spec.type) {
       case "component":
-        return new Component(spec as ComponentSpec, listeners, scope);
+        return new Component(spec as ComponentSpec, scope, listeners);
       case "gate":
-        return new Gate(spec as GateSpec, listeners, scope);
+        return new Gate(spec as GateSpec, scope, listeners);
       case "switch":
-        return new Switch(spec as SwitchSpec, listeners, scope);
+        return new Switch(spec as SwitchSpec, scope, listeners);
       case "value":
-        return new Value(spec as ValueSpec, listeners, scope);
-      default:
-        return new (require(`./api/${spec.type}.tree`)).default(
-          spec,
-          listeners,
-          scope
-        );
+        return new Value(spec as ValueSpec, scope, listeners);
+      default: {
+        const { default: S } = require(`./api/${spec.type}.tree`);
+        return new S(spec, scope, listeners);
+      }
     }
   }
 
   private _input: I;
   private readonly _listeners: Listener<O>[];
 
-  protected constructor(
-    spec: Spec,
-    listeners: Listener<O>[],
-    scope: StreamScope
-  ) {
+  protected constructor(spec: Spec, scope: Scope, listeners: Listener<O>[]) {
     this._listeners = listeners;
   }
 
@@ -134,11 +122,11 @@ abstract class Stream<O, I> {
   }
 }
 
-abstract class StaticStream<O, I, S> extends Stream<O, I> {
+abstract class StreamWithState<O, I, S> extends Stream<O, I> {
   private readonly _store: Store<S>;
 
-  constructor(spec: StaticSpec, listeners: Listener<O>[], scope: StreamScope) {
-    super(spec, listeners, scope);
+  constructor(spec: SpecWithState, scope: Scope, listeners: Listener<O>[]) {
+    super(spec, scope, listeners);
     this._store = new Store(spec.props.state, scope);
   }
 
@@ -150,12 +138,8 @@ abstract class StaticStream<O, I, S> extends Stream<O, I> {
 class Component<O, I, J> extends Stream<O, I> {
   private readonly _producers: Listener<I>[];
 
-  constructor(
-    spec: ComponentSpec,
-    listeners: Listener<O>[],
-    scope: StreamScope
-  ) {
-    super(spec, listeners, scope);
+  constructor(spec: ComponentSpec, scope: Scope, listeners: Listener<O>[]) {
+    super(spec, scope, listeners);
 
     const consumers: Listener<J>[] = [];
     for (const consumerSpec of spec.props.consumers) {
@@ -169,7 +153,7 @@ class Component<O, I, J> extends Stream<O, I> {
         consumer = broadcast;
       } else {
         consumer = new InputListener(
-          Stream.create(consumerSpec, [new OutputListener(this)], scope)
+          Stream.create(consumerSpec, scope, [new OutputListener(this)])
         );
       }
       consumers.push(consumer);
@@ -178,10 +162,13 @@ class Component<O, I, J> extends Stream<O, I> {
     this._producers = [];
     for (const producerSpec of spec.props.producers) {
       if (producerSpec.type === "listener") {
-        scope.addListeners((producerSpec as ListenerSpec).props.key, consumers);
+        scope.addListeners(
+          (producerSpec as BroadcastSpec).props.key,
+          consumers
+        );
       } else {
         this._producers.push(
-          new InputListener(Stream.create(producerSpec, consumers, scope))
+          new InputListener(Stream.create(producerSpec, scope, consumers))
         );
       }
     }
@@ -195,22 +182,20 @@ class Component<O, I, J> extends Stream<O, I> {
 }
 
 abstract class Condition<T> {
-  static create(spec: Spec, scope = new StreamScope()): Condition<unknown> {
-    switch (spec.type) {
-      default:
-        return new (require(`./api/${spec.type}.tree`)).default(spec, scope);
-    }
+  static create(spec: Spec, scope: Scope): Condition<unknown> {
+    const { default: C } = require(`./api/${spec.type}.tree`);
+    return new C(spec, scope);
   }
 
-  constructor(spec: Spec, scope: StreamScope) {}
+  constructor(spec: Spec, scope: Scope) {}
 
   abstract test(input: T): boolean;
 }
 
-abstract class StaticCondition<T, S> extends Condition<T> {
+abstract class ConditionWithState<T, S> extends Condition<T> {
   private readonly _store: Store<S>;
 
-  constructor(spec: StaticSpec, scope: StreamScope) {
+  constructor(spec: SpecWithState, scope: Scope) {
     super(spec, scope);
     this._store = new Store(spec.props.state, scope);
   }
@@ -224,13 +209,11 @@ class Gate<O, I> extends Stream<O, I> {
   private _conditions: Condition<I>[];
   private _positive: Stream<O, I>;
 
-  constructor(spec: GateSpec, listeners: Listener<O>[], scope: StreamScope) {
-    super(spec, listeners, scope);
-    this._positive = Stream.create(
-      spec.props.positive,
-      [new OutputListener(this)],
-      scope
-    ) as Stream<O, I>;
+  constructor(spec: GateSpec, scope: Scope, listeners: Listener<O>[]) {
+    super(spec, scope, listeners);
+    this._positive = Stream.create(spec.props.positive, scope, [
+      new OutputListener(this)
+    ]) as Stream<O, I>;
     this._conditions = [];
     for (const conditionSpec of spec.props.conditions) {
       this._conditions.push(Condition.create(conditionSpec, scope));
@@ -256,13 +239,11 @@ class Gate<O, I> extends Stream<O, I> {
 class Switch<O, I> extends Gate<O, I> {
   private _negative: Stream<O, I>;
 
-  constructor(spec: SwitchSpec, listeners: Listener<O>[], scope: StreamScope) {
-    super(spec, listeners, scope);
-    this._negative = Stream.create(
-      spec.props.negative,
-      [new OutputListener(this)],
-      scope
-    ) as Stream<O, I>;
+  constructor(spec: SwitchSpec, scope: Scope, listeners: Listener<O>[]) {
+    super(spec, scope, listeners);
+    this._negative = Stream.create(spec.props.negative, scope, [
+      new OutputListener(this)
+    ]) as Stream<O, I>;
   }
 
   run() {
@@ -275,8 +256,8 @@ class Switch<O, I> extends Gate<O, I> {
 }
 
 class Value<T> extends Stream<T, null> {
-  constructor(spec: ValueSpec, listeners: Listener<T>[], scope: StreamScope) {
-    super(spec, listeners, scope);
+  constructor(spec: ValueSpec, scope: Scope, listeners: Listener<T>[]) {
+    super(spec, scope, listeners);
     this.output = spec.props.value as T;
   }
 
@@ -342,7 +323,7 @@ class StateListener<T> extends Listener<T> {
   }
 }
 
-export { Condition, StaticCondition, StaticStream, Stream };
+export { Condition, ConditionWithState, Stream, StreamWithState };
 
 export default function main(spec: Spec) {
   Stream.create(spec);

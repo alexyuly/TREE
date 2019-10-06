@@ -1,6 +1,6 @@
-import { StaticStream } from "../main";
+import { StreamWithState } from "../main";
 
-class Delay<T> extends StaticStream<T, T, number> {
+class Delay<T> extends StreamWithState<T, T, number> {
   run() {
     const input = this.input;
     setTimeout(() => {

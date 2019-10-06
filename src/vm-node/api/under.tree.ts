@@ -1,6 +1,6 @@
-import { StaticCondition } from "../main";
+import { ConditionWithState } from "../main";
 
-class Under extends StaticCondition<number, number> {
+class Under extends ConditionWithState<number, number> {
   test(input: number) {
     return input < this.state;
   }

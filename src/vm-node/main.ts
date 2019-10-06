@@ -225,7 +225,6 @@ class Gate<O, I> extends Stream<O, I> {
     for (const condition of this._conditions) {
       if (condition.test(this.input)) {
         conditionResult = true;
-      } else {
         break;
       }
     }

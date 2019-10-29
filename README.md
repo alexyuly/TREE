@@ -6,23 +6,23 @@
 
 Every software application can be reduced to a combination of
 - a *type* `T`,
-- *actors* which produce `T` values, and
-- *reactors* which consume `T` values.
+- *producers* which produce `T` values, and
+- *consumers* which consume `T` values.
 
-A stream which combines an actor with a reactor looks like this:
+A stream which combines an consumer with a producer looks like this:
 
 ```
-< act
-> react
+< produce
+> consume
 ```
 
-A series of actors, followed by a series of reactors, will cause values to flow from the outputs of the actors, to the inputs of the reactors.
+A series of producers, followed by a series of consumers, will cause values to flow from the outputs of the producers to the inputs of the consumers.
 
 A special reactor called a *loop* broadcasts values to other actors:
 
 ```
 < start
-< reuse [Loop]
+< repeat [Loop]
 > [Loop]
-> react
+> render
 ```
